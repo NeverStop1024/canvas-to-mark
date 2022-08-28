@@ -7,7 +7,7 @@ export default {
   input: 'src/index.ts',
   output: {
     exports: 'auto',
-    file: 'lib/index.js',
+    file: 'dist/index.js',
     format: 'umd',
     name: 'CanvasToMark',
     sourcemap: true,

@@ -1,7 +1,8 @@
 # canvas-to-mark
 
-canvas图片标注工具
-[demo](https://codesandbox.io/s/throbbing-dust-tyn5wk?file=/index.html)|[效果](https://tyn5wk.csb.app/)
+canvas图片标注工具  
+
+[demo](https://codesandbox.io/s/throbbing-dust-tyn5wk?file=/index.html) | [效果](https://tyn5wk.csb.app/)
 
 ![example_lhizmZ](https://cdn.jsdelivr.net/gh/NeverStop1024/images-store@main/blog/example_lhizmZ.png)
 

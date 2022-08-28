@@ -1,6 +1,6 @@
 {
   "name": "canvas-to-mark",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "一个小范围使用的canvas图片标注小工具",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

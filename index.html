@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas-select示例</title>
+    <style>
+        body{
+            display: flex;
+        }
+      .container {
+        background-color: #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>
+        <button onclick="change(1)">创建矩形</button>
+        <button onclick="change(2)">创建多边形</button>
+        <button onclick="change(3)">创建点</button>
+        <button onclick="change(0)">取消创建</button>
+        <button onclick="zoom(true)">放大</button>
+        <button onclick="zoom(false)">缩小</button>
+        <button onclick="fitting()">适配</button>
+      </div>
+      <canvas width="1000" height="720" class="container"></canvas>
+    </div>
+    <div>
+      <div>输出结果</div>
+      <pre></pre>
+    </div>
+  </body>
+  <script src="./lib/index.js"></script>
+  <script>
+    const output = document.querySelector('pre');
+    const canvasSelect = new CanvasToMark('.container', '/1.webp');
+    canvasSelect.strokeStyle = 'rgb(52,244,39)';
+    window.canvasSelect = canvasSelect;
+    const option = [
+      {
+        "coor": [
+          [
+            2855,
+            2210
+          ],
+          [
+            4254,
+            3422
+          ]
+        ],
+        "active": false,
+        "creating": false,
+        "dragging": false,
+        "uuid": "a626d351-ce95-4821-b1b1-e8f298c47901",
+        "index": 0,
+        "type": 1
+      },
+    ];
+    // 加载完成
+    canvasSelect.on('load', () => {
+      canvasSelect.setData(option);
+    });
+    // 选中
+    canvasSelect.on('select', (info) => {
+      window.info = info;
+    });
+    canvasSelect.on('updated', (info) => {
+      window.tiger = info;
+      output.innerHTML = JSON.stringify(canvasSelect.dataset, null, 2);
+    });
+
+    function change(num) {
+      canvasSelect.createType = num;
+    }
+    function zoom(type) {
+      canvasSelect.setScale(type);
+    }
+    function fitting() {
+      canvasSelect.fitZoom();
+    }
+  </script>
+</html>

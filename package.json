@@ -1,6 +1,6 @@
 {
   "name": "canvas-to-mark",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "一个小范围使用的canvas图片标注小工具",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,10 +27,10 @@
     "tslib": "^2.4.0",
     "typescript": "^4.6.4"
   },
-  "homepage": "https://github.com/NeverStop1024/img-mark",
+  "homepage": "https://github.com/NeverStop1024/canvas-to-mark",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NeverStop1024/img-mark.git"
+    "url": "git+https://github.com/NeverStop1024/canvas-to-mark.git"
   },
   "files": [
     "dist",

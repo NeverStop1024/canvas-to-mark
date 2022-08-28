@@ -2,7 +2,7 @@
 
 canvas图片标注工具
 
-![example_eWCOvR](https://cdn.jsdelivr.net/gh/NeverStop1024/images-store@main/blog/example_eWCOvR.png)
+![example_lhizmZ](https://cdn.jsdelivr.net/gh/NeverStop1024/images-store@main/blog/example_lhizmZ.png)
 
 ## 简介
 

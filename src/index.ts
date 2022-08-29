@@ -23,7 +23,7 @@ export default class CanvasToMark extends EventBus {
 
     ctrlFillStyle = '#fff'
     // 点半径
-    ctrlRadius = 10
+    ctrlRadius = 5
 
     labelFillStyle = '#fff'
 
@@ -77,6 +77,8 @@ export default class CanvasToMark extends EventBus {
 
     rollScal: boolean = true; // 滚轮缩放
 
+    zoomCenter: 'canvasCenter' | 'mouse' = 'canvasCenter'; // 缩放中心 canvasCenter画布中心 mouse鼠标
+
     canStart: Promise<any>
 
     constructor(el: HTMLCanvasElement | string, imgSrc?: string) {
@@ -129,6 +131,12 @@ export default class CanvasToMark extends EventBus {
             }
         })
 
+        this.canvas.addEventListener('click', (e) => {
+            const containerPosition = this.getElementTop(this.canvas)
+
+            // console.log((e.clientX-containerPosition.pageLeft),(this.originX));
+        });
+
         this.canvas.addEventListener('contextmenu', (e) => {
             if (this.lock) return;
             e.preventDefault();
@@ -136,7 +144,7 @@ export default class CanvasToMark extends EventBus {
         this.canvas.addEventListener('mousewheel', (e: WheelEvent) => {
             if (this.lock || !this.rollScal) return;
             e.preventDefault();
-            this.setScale(e.deltaY < 0);
+            this.setScale(e.deltaY < 0,e);
             const offsetX = Math.round(e.offsetX / this.scale);
             const offsetY = Math.round(e.offsetY / this.scale);
             this.movePoint = [offsetX, offsetY];
@@ -622,7 +630,6 @@ export default class CanvasToMark extends EventBus {
      * 绘制背景图片
      */
     paintImage() {
-        // console.log(`绘制图片宽:${this.IMAGE_WIDTH},高:${this.IMAGE_HEIGHT},原点${this.originX},${this.originY},缩放倍数:${this.scale}`);
         this.ctx.drawImage(this.image, 0, 0, this.IMAGE_WIDTH, this.IMAGE_HEIGHT);
     }
 
@@ -691,24 +698,36 @@ export default class CanvasToMark extends EventBus {
     /**
      * 缩放
      * @param type true放大，false，缩小
+     * @param e 事件对象
      */
-    setScale(type: boolean) {
-        if (this.lock) return;
-        if ((!type && this.IMAGE_WIDTH <= 20) || (type && this.IMAGE_WIDTH >= this.WIDTH * 100)) return;
-        if (type) { this.scaleStep++; } else { this.scaleStep--; }
+    setScale(type: boolean, e?:MouseEvent) {
+        const ratio = (type ? 1.05 : 0.95)
+        this.IMAGE_WIDTH = this.IMAGE_WIDTH * ratio;
+        this.IMAGE_HEIGHT = this.IMAGE_HEIGHT * ratio;
 
-        const abs = Math.abs(this.scaleStep);
-        const width = this.IMAGE_WIDTH;
-        this.IMAGE_WIDTH = Math.round(this.IMAGE_ORIGIN_WIDTH * (this.scaleStep >= 0 ? 1.05 : 0.95) ** abs);
-        this.IMAGE_HEIGHT = Math.round(this.IMAGE_ORIGIN_HEIGHT * (this.scaleStep >= 0 ? 1.05 : 0.95) ** abs);
-        this.stayPosition(this.IMAGE_WIDTH / width);
+        if(this.zoomCenter === 'mouse' && e){
+            // 以鼠标位置为中心，进行缩放
+            const containerPosition = this.getElementTop(this.canvas)
+
+            const newOffsetX = ratio * ((e.clientX-containerPosition.pageLeft) - this.originX);
+            const newOffsetY = ratio * ((e.clientY-containerPosition.pageTop) - this.originY);
+
+            this.originX = this.originX + ((e.clientX-containerPosition.pageLeft) - this.originX) - newOffsetX
+            this.originY = this.originY + ((e.clientY-containerPosition.pageTop) - this.originY) - newOffsetY
+        }else {
+            // 以画布为中心，进行缩放
+            this.originX = (this.WIDTH  - this.IMAGE_WIDTH) / 2;
+            this.originY = (this.HEIGHT  - this.IMAGE_HEIGHT) / 2;
+        }
         this.update();
     }
+
 
     /**
      * 适配背景图
      */
     fitZoom() {
+        this.calcStep(true);
         if (this.IMAGE_HEIGHT / this.IMAGE_WIDTH >= this.HEIGHT / this.WIDTH) {
             this.IMAGE_WIDTH = this.IMAGE_ORIGIN_WIDTH / (this.IMAGE_ORIGIN_HEIGHT / this.HEIGHT);
             this.IMAGE_HEIGHT = this.HEIGHT;
@@ -722,11 +741,20 @@ export default class CanvasToMark extends EventBus {
     }
 
     /**
-     * 计算图片绘制原点，保持缩放中心
-     * @param scale nummer
+     * 获取dom距离页面顶部、左侧距离
      */
-    stayPosition(scale: number) {
-        this.originX = this.WIDTH / 2 - (this.WIDTH / 2 - this.originX) * scale;
-        this.originY = this.HEIGHT / 2 - (this.HEIGHT / 2 - this.originY) * scale;
+    getElementTop(elem: HTMLElement){
+        let elemTop = elem.offsetTop;//获得elem元素距相对定位的父元素的top
+        let elemLeft = elem.offsetLeft;//获得elem元素距相对定位的父元素的top
+
+        let e: any =elem.offsetParent;//将elem换成起相对定位的父元素
+        while(e!=null){//只要还有相对定位的父元素
+            //获得父元素 距他父元素的top值,累加到结果中
+            elemTop+=e.offsetTop;
+            elemLeft += e.offsetLeft;
+            //再次将elem换成他相对定位的父元素上;
+            e=e.offsetParent;
+        }
+        return {pageLeft:elemLeft,pageTop:elemTop};
     }
 }

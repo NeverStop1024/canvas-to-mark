@@ -17,19 +17,21 @@ export default class CanvasToMark extends EventBus {
 
     activeStrokeStyle = '#f00'
 
-    activeFillStyle = 'rgba(255, 0, 0,0.1)'
-
-    ctrlStrokeStyle = '#000'
-
     ctrlFillStyle = '#fff'
-    // 点半径
-    ctrlRadius = 5
+
+    ctrlRadius = 5 // 控制点半径
+
+    pointRadius = 5 // 圆半径
 
     labelFillStyle = '#fff'
 
-    labelFont = '12px serif #000'
+    labelFontSize = 12
+
+    labelFontColor = '#000'
 
     labelMaxLen = 5
+
+    rollScal: boolean = true; // 滚轮缩放
 
     WIDTH: number
 
@@ -55,8 +57,6 @@ export default class CanvasToMark extends EventBus {
 
     ctrlIndex: number = -1
 
-    cursor: string = 'auto'
-
     image: HTMLImageElement = new Image()
 
     imageLoaded: false
@@ -74,8 +74,6 @@ export default class CanvasToMark extends EventBus {
     originY: number = 0; // 原点y
 
     scaleStep: number = 0; // 缩放步长
-
-    rollScal: boolean = true; // 滚轮缩放
 
     zoomCenter: 'canvasCenter' | 'mouse' = 'canvasCenter'; // 缩放中心 canvasCenter画布中心 mouse鼠标
 
@@ -130,12 +128,6 @@ export default class CanvasToMark extends EventBus {
                 });
             }
         })
-
-        this.canvas.addEventListener('click', (e) => {
-            const containerPosition = this.getElementTop(this.canvas)
-
-            // console.log((e.clientX-containerPosition.pageLeft),(this.originX));
-        });
 
         this.canvas.addEventListener('contextmenu', (e) => {
             if (this.lock) return;
@@ -369,19 +361,8 @@ export default class CanvasToMark extends EventBus {
         });
         document.body.addEventListener('keyup', (e: KeyboardEvent) => {
             if (this.lock) return;
-            if (this.activeShape) {
-                if (this.activeShape.type === 2) {
-                    if (e.key === 'Escape') {
-                        if (this.activeShape.coor.length > 1 && this.activeShape.creating) {
-                            this.activeShape.coor.pop();
-                        } else {
-                            this.deleteByIndex(this.activeShape.index);
-                        }
-                    }
-                    this.update();
-                } else if (e.key === 'Backspace') {
-                    this.deleteByIndex(this.activeShape.index);
-                }
+            if( ['Escape','Backspace'].includes(e.key) && this.activeShape){
+                this.deleteByIndex(this.activeShape.index);
             }
         });
     }
@@ -403,8 +384,8 @@ export default class CanvasToMark extends EventBus {
             await this.canStart
             data.forEach((item, index) => {
                 if (Object.prototype.toString.call(item).indexOf('Object') > -1) {
-                    const { label, type, coor, strokeStyle, fillStyle, labelFillStyle, labelFont, uuid } = item;
-                    const style = { strokeStyle, fillStyle, labelFillStyle, labelFont }
+                    const { label, type, coor, strokeStyle, fillStyle, labelFillStyle, uuid } = item;
+                    const style = { strokeStyle, fillStyle, labelFillStyle }
                     let shape
                     switch (type) {
                         case 1:
@@ -433,14 +414,14 @@ export default class CanvasToMark extends EventBus {
     /**
      * 判断是否在标注实例上
      * @param mousePoint 点击位置
-     * @returns 
+     * @returns
      */
     hitOnShape(mousePoint: Point): [number, Rect | Polygon | Dot] {
         let hitShapeIndex = -1;
         const hitShape = this.dataset.reduceRight((target, shape, i) => {
             if (!target) {
                 if (
-                    (shape.type === 3 && this.isPointInCircle(mousePoint, shape.coor as Point, 3))
+                    (shape.type === 3 && this.isPointInCircle(mousePoint, shape.coor as Point, this.pointRadius))
                     || (shape.type === 1 && this.isPointInRect(mousePoint, (shape as Rect).coor))
                     || (shape.type === 2 && this.isPointInPolygon(mousePoint, (shape as Polygon).coor))
                 ) {
@@ -511,17 +492,17 @@ export default class CanvasToMark extends EventBus {
     isPointInCircle(point: Point, center: Point, r: number): boolean {
         const [x, y] = point;
         const [x0, y0] = center.map((a) => a * this.scale);
-        const distance = Math.sqrt((x0 + this.originX - x) ** 2 + (y0 + this.originY - y) ** 2);
+        const distance = Math.sqrt((x0 - (x - this.originX)) ** 2 + (y0  - (y - this.originY)) ** 2);
         return distance <= r;
     }
     /**
      * 绘制矩形
      * @param shape 标注实例
-     * @returns 
+     * @returns
      */
     drawRect(shape: Rect) {
         if (shape.coor.length !== 2) return;
-        const { labelFillStyle, labelFont, strokeStyle, fillStyle, active, creating, coor, label } = shape
+        const { labelFillStyle, strokeStyle, fillStyle, active, creating, coor, label } = shape
         const [[x0, y0], [x1, y1]] = coor.map((a: Point) => a.map((b) => Math.round(b * this.scale)));
         this.ctx.save();
         this.ctx.fillStyle = fillStyle || this.fillStyle;
@@ -531,14 +512,16 @@ export default class CanvasToMark extends EventBus {
         this.ctx.strokeRect(x0, y0, w, h);
         if (!creating) this.ctx.fillRect(x0, y0, w, h);
         this.ctx.restore();
-        this.drawLabel(coor[0], label, labelFillStyle, labelFont);
+        const labelCoor: Point = [coor[0][0] + ((coor[1][0] - coor[0][0]) / 2)  , coor[0][1] + ((coor[1][1] - coor[0][1]) / 2)]
+
+        this.drawLabel(labelCoor, label, labelFillStyle);
     }
     /**
      * 绘制多边形
      * @param shape 标注实例
      */
     drawPolygon(shape: Polygon) {
-        const { labelFillStyle, labelFont, strokeStyle, fillStyle, active, creating, coor, label } = shape
+        const { labelFillStyle, strokeStyle, fillStyle, active, creating, coor, label } = shape
         this.ctx.save();
         this.ctx.fillStyle = fillStyle || this.fillStyle;
         this.ctx.strokeStyle = (active || creating) ? this.activeStrokeStyle : (strokeStyle || this.strokeStyle);
@@ -560,25 +543,28 @@ export default class CanvasToMark extends EventBus {
         this.ctx.fill();
         this.ctx.stroke();
         this.ctx.restore();
-        this.drawLabel(coor[0], label, labelFillStyle, labelFont);
+        this.drawLabel(coor[0], label, labelFillStyle);
     }
     /**
      * 绘制点
      * @param shape 标注实例
      */
     drawDot(shape: Dot) {
-        const { labelFillStyle, labelFont, strokeStyle, fillStyle, active, coor, label } = shape
+        const { labelFillStyle, strokeStyle, fillStyle, active, coor, label } = shape
         const [x, y] = coor.map((a) => a * this.scale);
         this.ctx.save();
         this.ctx.fillStyle = fillStyle || this.ctrlFillStyle;
         this.ctx.strokeStyle = active ? this.activeStrokeStyle : (strokeStyle || this.strokeStyle);
         this.ctx.beginPath();
-        this.ctx.arc(x, y, this.ctrlRadius, 0, 2 * Math.PI, true);
+        this.ctx.arc(x, y, this.pointRadius, 0, 2 * Math.PI, true);
+        // 通过填充路径的内容区域生成实心的图形
         this.ctx.fill();
-        this.ctx.arc(x, y, this.ctrlRadius, 0, 2 * Math.PI, true);
+        this.ctx.arc(x, y, this.pointRadius, 0, 2 * Math.PI, true);
+        // 通过线条来绘制图形轮廓
         this.ctx.stroke();
         this.ctx.restore();
-        this.drawLabel(coor as Point, label, labelFillStyle, labelFont);
+        const labelCoor = [coor[0]  , coor[1] + (this.pointRadius + 2) * 1/this.scale]
+        this.drawLabel(labelCoor as Point, label, labelFillStyle);
     }
     /**
      * 绘制控制点
@@ -588,8 +574,8 @@ export default class CanvasToMark extends EventBus {
         const [x, y] = point.map((a) => a * this.scale);
         this.ctx.save();
         this.ctx.beginPath();
-        this.ctx.fillStyle = this.ctrlFillStyle;
-        this.ctx.strokeStyle = this.ctrlStrokeStyle;
+        this.ctx.fillStyle = '#fff';
+        this.ctx.strokeStyle = 'rgb(52,244,39)';
         this.ctx.arc(x, y, this.ctrlRadius, 0, 2 * Math.PI, true);
         this.ctx.fill();
         this.ctx.arc(x, y, this.ctrlRadius, 0, 2 * Math.PI, true);
@@ -610,22 +596,21 @@ export default class CanvasToMark extends EventBus {
      * @param point 位置
      * @param label 文本
      */
-    drawLabel(point: Point, label: string = '', labelFillStyle = '', labelFont = '') {
+    drawLabel(point: Point, label: string = '', labelFillStyle = '') {
         if (label.length) {
             const newStr = label.length < this.labelMaxLen + 1 ? label : (`${label.substr(0, this.labelMaxLen)}...`);
+            this.ctx.font =`${this.labelFontSize}px 楷体`;
             const text = this.ctx.measureText(newStr);
             const [x, y] = point.map((a) => a * this.scale);
-            const toleft = (this.IMAGE_ORIGIN_WIDTH - point[0]) < (text.width + 4) / this.scale;
-            const toTop = (this.IMAGE_ORIGIN_HEIGHT - point[1]) < 16 / this.scale;
             this.ctx.save();
             this.ctx.fillStyle = labelFillStyle || this.labelFillStyle;
-            this.ctx.fillRect(toleft ? (x - text.width - 3) : (x + 1), toTop ? (y - 15) : y + 1, text.width + 4, 16);
-            this.ctx.font = labelFont || this.labelFont;
-            this.ctx.strokeText(newStr, toleft ? (x - text.width - 2) : (x + 2), toTop ? (y - 4) : y + 12, 80);
+            this.ctx.fillRect(x - ((text.width + 8)/2), y, text.width + 8, this.labelFontSize*1.3);
+            this.ctx.fillStyle = this.labelFontColor;
+            this.ctx.fillText(newStr, x-((text.width + 4)/2), y +  (this.labelFontSize));
             this.ctx.restore();
         }
     }
-
+    //
     /**
      * 绘制背景图片
      */
@@ -667,7 +652,7 @@ export default class CanvasToMark extends EventBus {
     }
 
     /**
-     * 删除指定矩形
+     * 删除指定实例
      * @param index number
      */
     deleteByIndex(index: number) {

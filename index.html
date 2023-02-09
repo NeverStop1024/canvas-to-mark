@@ -11,6 +11,7 @@
         }
       .container {
         background-color: #8d8d8c;
+          /*margin: 300px;*/
       }
     </style>
   </head>
@@ -36,8 +37,14 @@
   <script>
     const output = document.querySelector('pre');
     const canvasSelect = new CanvasToMark('.container', '1.webp');
-    canvasSelect.strokeStyle = 'rgb(52,244,39)';
+    canvasSelect.activeStrokeStyle = 'rgb(52,244,39)';
     canvasSelect.zoomCenter = 'mouse'
+    canvasSelect.pointRadius = 10
+    canvasSelect.ctrlFillStyle = 'rgb(255,0,0)'
+    canvasSelect.strokeStyle = 'rgb(255,0,0)'
+    canvasSelect.labelFontSize = 13
+    canvasSelect.labelFontColor = 'red'
+
     window.canvasSelect = canvasSelect;
     const option = [
       {
